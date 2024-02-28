@@ -1,0 +1,9 @@
+const message = {
+      _id:Math.random().toString(36).substring(7),
+      text: inputMessage,
+      createAt: new Date(),
+      user:{_id: 1}
+    }
+    setMessage((previousMessages)=>
+      GiftedChat.append(previousMessages, [message])
+    )
