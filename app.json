@@ -7,7 +7,7 @@
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/arjuna1.png",
+      "image": "./assets/splash_img.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

@@ -1,52 +1,68 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, ScrollView, StyleSheet,Text } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, ActivityIndicator, Platform, StatusBar } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { GiftedChat } from 'react-native-gifted-chat'; // Corrected import
-import { CurrentRenderContext } from '@react-navigation/native';
+import { GiftedChat } from 'react-native-gifted-chat';
 
 export default function App() {
-  const [messages, setMessage] = useState([]); // Renamed for clarity and correctness
+  const welcomeMessage = {
+    _id: 1,
+    text: "Greetings, seeker of wisdom. You've entered a realm where ancient knowledge meets modern dilemmas. Inspired by the profound teachings of the Bhagavad Gita, I'm here to help you reflect, understand, and find peace in your answers. What life questions can I assist you with today?",
+    createdAt: new Date(),
+    user: {
+      _id: 2, // Assuming '2' is the ID for the bot
+      name: "Gita Bot",
+      avatar: require('./assets/logo.png'), // Assuming you have an avatar for the bot
+    },
+  };
+  const [messages, setMessage] = useState([welcomeMessage]); // Renamed for clarity and correctness
   const [inputMessage, setInputMessage] = useState(''); 
-  const [outputMessage, setOutputMessage] = useState('');
-  const botAvatar = require("./assets/logo.png"); 
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
   const sendMessage = async () => {
+    setIsLoading(true);
     const message = {
       _id:Math.random().toString(36).substring(7),
       text: inputMessage,
       createdAt: new Date(),
-      user:{_id: 1},
-    }
+      user: {
+        _id: 1, // Make sure this matches the user ID you set in GiftedChat's `user` prop
+        avatar:  require("./assets/userlogo.png"), // This should be a valid path or URL
+      },
+    };
     setMessage((previousMessages)=>
       GiftedChat.append(previousMessages, [message])
     )
     setInputMessage('');
-    fetch('https://gita-chat-beta2.azurewebsites.net/api/gita_assistant_v1?Content-Type=application/json', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ "prompt": inputMessage }),
-    })
-    .then((response) => response.json()).then((data) => {
-      setOutputMessage(data.trim())
-      const message = {
-        _id:Math.random().toString(36).substring(7),
-        text: data,
+    setShowSuggestions(false);
+    
+    try {
+      const response = await fetch('https://gita-chat-beta2.azurewebsites.net/api/gita_assistant_v1?Content-Type=application/json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ "prompt": inputMessage }),
+      });
+      const data = await response.json();
+      const botMessage = {
+        _id: Math.random().toString(36).substring(7),
+        text: data.trim(),
         createdAt: new Date(),
-        user:{_id: 2, avatar: botAvatar}
-      }
-      setMessage((previousMessages)=>
-        GiftedChat.append(previousMessages, [message])
-      )
-    })
-    .catch((error) => {
+        user: { _id: 2, avatar: require('./assets/logo.png') },
+      };
+      setMessage(previousMessages => GiftedChat.append(previousMessages, [botMessage]));
+    } catch (error) {
       console.error("Error fetching data: ", error);
-    });
+      // Optionally, handle the error in the UI here
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
 
-  const handleTextInput = (text) => {
-    setInputMessage(text);
+  const handleSuggestionPress = (suggestion) => {
+    setInputMessage(suggestion);
+    setShowSuggestions(false);
   };
 
   return (
@@ -54,21 +70,38 @@ export default function App() {
         <GiftedChat
           messages={messages}
           onSend={messages => setMessage(previousMessages => GiftedChat.append(previousMessages, messages))}
-          user={{ _id: 1 }}
+          user={{ _id: 1}}
           renderInputToolbar={() => null}
           style={styles.messagesContainer}
         />
+        {showSuggestions && (
+        <View style={styles.suggestionsContainer}>
+          <TouchableOpacity
+            onPress={() => handleSuggestionPress("What is the purpose of life?")}
+            style={styles.suggestionButton}>
+            <Text style={styles.suggestionButtonText}>Purpose of Life</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleSuggestionPress("How to find peace?")}
+            style={styles.suggestionButton}>
+            <Text style={styles.suggestionButtonText}>Finding Peace</Text>
+          </TouchableOpacity>
+        </View>)}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             value={inputMessage}
-            onChangeText={handleTextInput}
+            onChangeText={setInputMessage}
             placeholder="Type a message"
+            editable={!isLoading} // Disable input when loading
           />
-
-          <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
-            <MaterialIcons name="send" size={25} color="white" />
-          </TouchableOpacity>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#0000ff" />
+          ) : (
+            <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
+              <MaterialIcons name="send" size={25} color="white" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
   );
@@ -77,13 +110,14 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5f4ec',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    marginTop: 10,
   },
   messagesContainer: {
     flex: 1,
-    justifyContent: "center"
+    justifyContent: "center",
   },
-  
   userMessage: {
     alignSelf: 'flex-end',
     backgroundColor: '#F7D6D0',
@@ -100,7 +134,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginVertical: 5,
   },
-  
   botImage: {
     width: 40, // Adjust the size as needed
     height: 40, // Adjust the size as needed
@@ -134,6 +167,20 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   sendButtonText: {
+    color: '#fff',
+  },
+  suggestionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingBottom: 10,
+  },
+  suggestionButton: {
+    backgroundColor: 'green',
+    borderRadius: 20,
+    padding: 10,
+    marginHorizontal: 10,
+  },
+  suggestionButtonText: {
     color: '#fff',
   },
 });
