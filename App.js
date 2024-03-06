@@ -82,9 +82,9 @@ export default function App() {
             <Text style={styles.suggestionButtonText}>Purpose of Life</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => handleSuggestionPress("How to find peace?")}
+            onPress={() => handleSuggestionPress("Who is Krishna?")}
             style={styles.suggestionButton}>
-            <Text style={styles.suggestionButtonText}>Finding Peace</Text>
+            <Text style={styles.suggestionButtonText}>Krishna</Text>
           </TouchableOpacity>
         </View>)}
         <View style={styles.inputContainer}>
@@ -184,4 +184,3 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 });
-
